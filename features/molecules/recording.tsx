@@ -28,10 +28,10 @@ export const Recording = () => {
     <View style={styled.wrapper}>
       <TouchableHighlight
         underlayColor={"white"}
-        onPress={() => {
+        onPress={async () => {
+          await stopRecording(recordingData)
           console.log(recordingData?.getURI())
           setRecording(false)
-          stopRecording(recordingData)
         }}
       >
         <Image

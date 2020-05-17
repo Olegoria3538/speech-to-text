@@ -1,5 +1,5 @@
-import { createEvent, createStore, createEffect } from "effector"
-import { Audio } from "expo-av"
+import { createEvent, createStore, createEffect, combine } from "effector"
+import { Audio, AVPlaybackStatus } from "expo-av"
 import * as Permissions from "expo-permissions"
 import { recordingOptions } from "../ui/recording"
 
@@ -57,10 +57,38 @@ const stopRecording = async (recording: Audio.Recording | null) => {
   }
 }
 
+const $recordingSoundFx = combine({
+  recording: $recording,
+  recordingData: $recordingData,
+}).map(async ({ recording, recordingData }) => {
+  if (!recordingData || recording) return null
+  const { sound, status } = await recordingData.createNewLoadedSoundAsync({
+    volume: 1,
+  })
+  return { sound, status }
+})
+
+$recordingSoundFx.watch(async (x) => {
+  const res = await x
+  if (res?.sound && res.status) recordingSoundSet(res)
+})
+
+const $recordingSound = createStore<{
+  sound: Audio.Sound
+  status: AVPlaybackStatus
+} | null>(null)
+
+const recordingSoundSet = createEvent<{
+  sound: Audio.Sound
+  status: AVPlaybackStatus
+} | null>()
+$recordingSound.on(recordingSoundSet, (_, x) => x)
+
 export {
   $recording,
   setRecording,
   $recordingData,
   recordingStart,
   stopRecording,
+  $recordingSound,
 }
