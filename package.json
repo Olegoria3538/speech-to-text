@@ -8,6 +8,8 @@
     "eject": "expo eject"
   },
   "dependencies": {
+    "effector": "^20.15.0",
+    "effector-react": "^20.7.1",
     "expo": "~37.0.3",
     "expo-av": "~8.1.0",
     "react": "~16.9.0",
