@@ -1,7 +1,14 @@
-import { createEvent, createStore, createEffect, combine } from "effector"
+import {
+  createEvent,
+  createStore,
+  createEffect,
+  combine,
+  Store,
+} from "effector"
 import { Audio, AVPlaybackStatus } from "expo-av"
 import * as Permissions from "expo-permissions"
-import { recordingOptions } from "../ui/recording"
+import { recordingOptions } from "../utils/recording"
+import * as FileSystem from "expo-file-system"
 
 const $recording = createStore<boolean>(false)
 const setRecording = createEvent<boolean>()
@@ -52,6 +59,7 @@ const stopRecording = async (recording: Audio.Recording | null) => {
   try {
     // stop the recording
     await recording.stopAndUnloadAsync()
+    setRecordingSoundUrl(recording.getURI())
   } catch (error) {
     console.log("error stop")
   }
@@ -84,6 +92,52 @@ const recordingSoundSet = createEvent<{
 } | null>()
 $recordingSound.on(recordingSoundSet, (_, x) => x)
 
+const $recordingSoundUrl = createStore<string | null>(null)
+const setRecordingSoundUrl = createEvent<string | null>()
+$recordingSoundUrl.on(setRecordingSoundUrl, (_, x) => x)
+
+$recordingSoundUrl.watch((uri) => {
+  if (uri) {
+    fetchSpeech(uri)
+    setLoad(false)
+  }
+})
+
+const $load = createStore<boolean>(true)
+const setLoad = createEvent<boolean>()
+$load.on(setLoad, (_, x) => x)
+
+const $text = createStore<string>("")
+
+const fetchSpeech = createEffect<string, string, any>({
+  handler: async (datum) => {
+    const { uri } = await FileSystem.getInfoAsync(datum)
+    const formData = new FormData()
+    const meta = {
+      uri,
+      type: "audio/x-wav",
+      name: "speech2text",
+    }
+    formData.append(
+      "file",
+      //@ts-ignore
+      meta
+    )
+    const req = await fetch("http://172.16.45.154:3005/speech", {
+      method: "POST",
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+      body: formData,
+    }).then((x) => x.json())
+
+    return req.data
+  },
+})
+
+$text.on(fetchSpeech.done, (_, { result }) => result)
+$load.on(fetchSpeech.done, (_) => true)
+
 export {
   $recording,
   setRecording,
@@ -91,4 +145,7 @@ export {
   recordingStart,
   stopRecording,
   $recordingSound,
+  $recordingSoundUrl,
+  $text,
+  $load,
 }

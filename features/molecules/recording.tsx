@@ -30,7 +30,6 @@ export const Recording = () => {
         underlayColor={"white"}
         onPress={async () => {
           await stopRecording(recordingData)
-          console.log(recordingData?.getURI())
           setRecording(false)
         }}
       >
