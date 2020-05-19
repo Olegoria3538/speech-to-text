@@ -1,3 +1,4 @@
+//импорт зависимостей
 import {
   createEvent,
   createStore,
@@ -10,22 +11,23 @@ import * as Permissions from "expo-permissions"
 import { recordingOptions } from "../utils/recording"
 import * as FileSystem from "expo-file-system"
 
+// стора в которой хранится флаг идет ли запись
 const $recording = createStore<boolean>(false)
 const setRecording = createEvent<boolean>()
 $recording.on(setRecording, (_, x) => x)
+/////
 
+//тут хранится информациия  записи
 const $recordingData = createStore<null | Audio.Recording>(null)
 
 const recordingStart = createEffect({
   handler: async () => {
-    // request permissions to record audio
+    // проверка разрешенна ли запись
     const { status } = await Permissions.askAsync(Permissions.AUDIO_RECORDING)
-    // if the user doesn't allow us to do so - return as we can't do anything further :(
+    // если не завершина ничего не поделать
     if (status !== "granted") return null
-    // when status is granted - setting up our state
 
-    // basic settings before we start recording,
-    // you can read more about each of them in expo documentation on Audio
+    // инициализируем аудио
     await Audio.setAudioModeAsync({
       allowsRecordingIOS: true,
       interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
@@ -33,54 +35,63 @@ const recordingStart = createEffect({
       interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
       playThroughEarpieceAndroid: true,
     })
+
     const recording = new Audio.Recording()
     try {
-      // here we pass our recording options
+      // передаем опции для записи
       await recording.prepareToRecordAsync(recordingOptions)
-      // and finally start the record
+      // запускаем запись
       await recording.startAsync()
     } catch (error) {
       console.log(error)
-      // we will take a closer look at stopRecording function further in this article
       alert("Ошибка")
       return null
     }
 
-    // if recording was successful we store the result in variable,
-    // so we can refer to it from other functions of our component
+    //и возращаем запись
     return recording
   },
 })
 $recordingData.on(recordingStart.done, (_, { result }) => result)
 
 const stopRecording = async (recording: Audio.Recording | null) => {
-  // set our state to false, so the UI knows that we've stopped the recording
+  //останавливаем запись
   if (!recording) return
   try {
-    // stop the recording
+    //останавливаем запись
     await recording.stopAndUnloadAsync()
+
+    //отправляем uri файла в стору
     setRecordingSoundUrl(recording.getURI())
   } catch (error) {
     console.log("error stop")
   }
 }
 
+//композиция флага записи и информации записи
+// если запись идет или записи нет то возращаем нул
 const $recordingSoundFx = combine({
   recording: $recording,
   recordingData: $recordingData,
 }).map(async ({ recording, recordingData }) => {
   if (!recordingData || recording) return null
+
+  // загружем звуковой файл для воспроизведения, эта функция асинхрона
+  // поэтому вернется промис, это что-то схоже на обынчый колбек
   const { sound, status } = await recordingData.createNewLoadedSoundAsync({
     volume: 1,
   })
   return { sound, status }
 })
 
+//функция просмотра изменений из прошлой сторы
 $recordingSoundFx.watch(async (x) => {
   const res = await x
+  //дожидаемся промис (колбек) и отправляем наш звуковой файл в стору
   if (res?.sound && res.status) recordingSoundSet(res)
 })
 
+//стора для звукового файла
 const $recordingSound = createStore<{
   sound: Audio.Sound
   status: AVPlaybackStatus
@@ -92,23 +103,28 @@ const recordingSoundSet = createEvent<{
 } | null>()
 $recordingSound.on(recordingSoundSet, (_, x) => x)
 
+// стора uri
 const $recordingSoundUrl = createStore<string | null>(null)
 const setRecordingSoundUrl = createEvent<string | null>()
 $recordingSoundUrl.on(setRecordingSoundUrl, (_, x) => x)
 
 $recordingSoundUrl.watch((uri) => {
+  // при каждом изменении сторы отправлем запрос на сервер
   if (uri) {
     fetchSpeech(uri)
     setLoad(false)
   }
 })
 
+//стора-флаг обрабатывется ли сейчас файл
 const $load = createStore<boolean>(true)
 const setLoad = createEvent<boolean>()
 $load.on(setLoad, (_, x) => x)
 
+// тут хранятся результаты
 const $text = createStore<string>("")
 
+//запрос на сервер
 const fetchSpeech = createEffect<string, string, any>({
   handler: async (datum) => {
     const { uri } = await FileSystem.getInfoAsync(datum)
@@ -123,7 +139,7 @@ const fetchSpeech = createEffect<string, string, any>({
       //@ts-ignore
       meta
     )
-    const req = await fetch("http://172.16.45.154:3005/speech", {
+    const req = await fetch("http://192.168.0.35:3005/speech", {
       method: "POST",
       headers: {
         "Content-Type": "multipart/form-data",
@@ -135,6 +151,7 @@ const fetchSpeech = createEffect<string, string, any>({
   },
 })
 
+//запись результата
 $text.on(fetchSpeech.done, (_, { result }) => result)
 $load.on(fetchSpeech.done, (_) => true)
 
