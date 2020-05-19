@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { View, StyleSheet, Image, TouchableHighlight, Text } from "react-native"
-import { ICON_RECORD_BUTTON } from "../ui/icons"
+import { iconMicrophone } from "../ui/icons"
 import {
   recordingStart,
   setRecording,
@@ -34,8 +34,8 @@ export const Recording = () => {
         }}
       >
         <Image
-          style={{ width: 50 * 3, height: 60 * 3 }}
-          source={ICON_RECORD_BUTTON}
+          style={{ width: 50 * 3, height: 90 * 3 }}
+          source={iconMicrophone}
         />
       </TouchableHighlight>
       <Text style={styled.text}>{time}</Text>

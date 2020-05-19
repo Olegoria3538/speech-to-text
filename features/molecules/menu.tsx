@@ -1,10 +1,6 @@
 import React from "react"
 import { View, StyleSheet, Image, TouchableHighlight } from "react-native"
-import {
-  ICON_RECORD_BUTTON,
-  ICON_PLAY_BUTTON,
-  ICON_STOP_BUTTON,
-} from "../ui/icons"
+import { iconMicrophone, iconPlay, iconStop } from "../ui/icons"
 import { setRecording, $recordingSound } from "../model/record"
 import { useStore } from "effector-react"
 
@@ -17,19 +13,19 @@ export const Menu = () => {
         underlayColor={"white"}
         onPress={() => recordingSound?.sound?.playAsync()}
       >
-        <Image source={ICON_PLAY_BUTTON} />
+        <Image style={{ width: 60, height: 80 }} source={iconPlay} />
       </TouchableHighlight>
       <TouchableHighlight
         underlayColor={"white"}
         onPress={() => setRecording(true)}
       >
-        <Image style={{ width: 50, height: 60 }} source={ICON_RECORD_BUTTON} />
+        <Image style={{ width: 50, height: 90 }} source={iconMicrophone} />
       </TouchableHighlight>
       <TouchableHighlight
         underlayColor={"white"}
         onPress={() => recordingSound?.sound?.stopAsync()}
       >
-        <Image style={{ width: 30, height: 30 }} source={ICON_STOP_BUTTON} />
+        <Image style={{ width: 60, height: 60 }} source={iconStop} />
       </TouchableHighlight>
     </View>
   )
